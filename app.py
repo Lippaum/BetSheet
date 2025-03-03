@@ -24,7 +24,7 @@ def auto_adjust_column_width(ws):
 
 # Função para processar os dados (com cache)
 @st.cache_data
-def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, data_fim, green_color, red_color):
+def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, data_fim):
     try:
         df = pd.read_excel(file, sheet_name="Tips Enviadas")
     except Exception as e:
@@ -36,8 +36,8 @@ def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, d
     df["Winrate 2"] = pd.to_numeric(df["Winrate 2"], errors="coerce")
     df["Lucro/Prej."] = pd.to_numeric(df["Lucro/Prej."], errors="coerce")
     df["Lucro/Prej."] = df["Lucro/Prej."].fillna(0)
-    # Assumindo que a coluna "J" contém as datas
-    df["Data"] = pd.to_datetime(df.iloc[:, 9], errors="coerce")  # Índice 9 corresponde à coluna J (0-based)
+    # Converter a coluna "Data" (índice 9, coluna J) para o formato brasileiro DD/MM/YYYY
+    df["Data"] = pd.to_datetime(df.iloc[:, 9], format="%d/%m/%Y", errors="coerce")
 
     if "Campeonato" not in df.columns:
         st.error("A coluna 'Campeonato' não foi encontrada na planilha.")
@@ -48,7 +48,7 @@ def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, d
         st.error("Winrates devem estar entre 0 e 100%, e o mínimo deve ser menor ou igual ao máximo")
         return None, None
 
-    # Filtro dinâmico
+    # Filtro dinâmico (ajustado para formato de data brasileiro)
     df_filtered = df
     if torneio != "Todos":
         df_filtered = df_filtered[df_filtered["Torneio"] == torneio]
@@ -56,10 +56,14 @@ def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, d
         df_filtered = df_filtered[df_filtered["Tip"].str.upper() == tip.upper()]
     df_filtered = df_filtered[
         (df_filtered["Winrate 1"] >= winrate_min) & 
-        (df_filtered["Winrate 1"] <= winrate_max) &
-        (df_filtered["Data"] >= pd.to_datetime(data_inicio)) &
-        (df_filtered["Data"] <= pd.to_datetime(data_fim))
+        (df_filtered["Winrate 1"] <= winrate_max)
     ]
+    # Filtro de data ajustado para formato brasileiro
+    df_filtered = df_filtered[
+        (pd.to_datetime(df_filtered["Data"], format="%d/%m/%Y", errors="coerce") >= pd.to_datetime(data_inicio, format="%Y/%m/%d")) &
+        (pd.to_datetime(df_filtered["Data"], format="%d/%m/%Y", errors="coerce") <= pd.to_datetime(data_fim, format="%Y/%m/%d"))
+    ]
+
 
     if df_filtered.empty:
         st.warning("Nenhum dado disponível após o filtro.")
@@ -135,17 +139,17 @@ def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, d
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df_filtered.to_excel(writer, sheet_name="Tips Enviadas", index=False)
         df_campeonato.to_excel(writer, sheet_name="Campeonato", index=False)
-        df_confronto.to_excel(writer, sheet_name="ROI por Confronto", index=False)
-        df_winrate1.to_excel(writer, sheet_name="ROI por Winrate 1", index=False)
-        df_winrate2.to_excel(writer, sheet_name="ROI por Winrate 2", index=False)
-        df_jogador.to_excel(writer, sheet_name="ROI por Jogador", index=False)
-        df_time.to_excel(writer, sheet_name="ROI por Time", index=False)
-        df_confronto_times.to_excel(writer, sheet_name="ROI por Confronto Times", index=False)
+        df_confronto.to_excel(writer, sheet_name="Confronto", index=False)
+        df_winrate1.to_excel(writer, sheet_name="Winrate 1", index=False)
+        df_winrate2.to_excel(writer, sheet_name="Winrate 2", index=False)
+        df_jogador.to_excel(writer, sheet_name="Jogador", index=False)
+        df_time.to_excel(writer, sheet_name="Time", index=False)
+        df_confronto_times.to_excel(writer, sheet_name="Confronto Times", index=False)
 
     output.seek(0)
     wb = load_workbook(output)
-    sheets = ["Tips Enviadas", "Campeonato", "ROI por Confronto", "ROI por Winrate 1", "ROI por Winrate 2", 
-              "ROI por Jogador", "ROI por Time", "ROI por Confronto Times"]
+    sheets = ["Tips Enviadas", "Campeonato", "Confronto", "Winrate 1", "Winrate 2", 
+              "Jogador", "Time", "Confronto Times"]
 
     for sheet_name in sheets:
         ws = wb[sheet_name]
@@ -201,14 +205,15 @@ def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, d
                             except (ValueError, TypeError):
                                 continue
 
-            # Formatação de "ROI (%)" como porcentagem
+            # Formatação de "ROI (%)" como porcentagem com formatação condicional igual a Lucro/Prej.
             if roi_col_idx:
                 for row in ws.iter_rows(min_row=2, min_col=roi_col_idx, max_col=roi_col_idx):
                     for cell in row:
                         if cell.value is not None:
                             try:
-                                value = float(cell.value)  # Valor como decimal (ex.: 0.25 para 25%)
+                                value = float(cell.value)  # Valor decimal (ex.: 0.04 para 4.00%)
                                 cell.number_format = '0.00%'  # Formato de porcentagem com duas casas decimais
+                                cell.value = round(value, 2)  # Arredondar para consistência
                                 if value > 0:
                                     cell.fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")  # Verde claro
                                     cell.font = Font(bold=True, color="006400")  # Verde escuro em negrito
@@ -218,12 +223,18 @@ def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, d
                             except (ValueError, TypeError):
                                 continue
 
-           # Formatação condicional específica para "Tips Enviadas" com base em "Green" ou "Red"
+            # Formatação condicional específica para "Tips Enviadas" com base em "Green" ou "Red" e conversão de Winrate para %
             if sheet_name == "Tips Enviadas":
                 resultado_col_idx = None
+                winrate1_col_idx = None
+                winrate2_col_idx = None
                 for col_idx, cell in enumerate(ws[1], start=1):
-                    if cell.value == "Resultado":  # Assumindo que a coluna de resultado contém "Green" ou "Red"
+                    if cell.value == "Resultado":
                         resultado_col_idx = col_idx
+                    elif cell.value == "Winrate 1":
+                        winrate1_col_idx = col_idx
+                    elif cell.value == "Winrate 2":
+                        winrate2_col_idx = col_idx
                 if resultado_col_idx:
                     for row in ws.iter_rows(min_row=2, min_col=resultado_col_idx, max_col=resultado_col_idx):
                         for cell in row:
@@ -234,12 +245,27 @@ def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, d
                                 elif isinstance(cell.value, str) and "Red" in cell.value:
                                     cell.fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")  # Vermelho claro
                                     cell.font = Font(bold=True, color="8B0000")  # Vermelho escuro em negrito
+                # Converter Winrate 1 e Winrate 2 para formato de porcentagem sem multiplicar por 100
+                if winrate1_col_idx:
+                    for row in ws.iter_rows(min_row=2, min_col=winrate1_col_idx, max_col=winrate1_col_idx):
+                        for cell in row:
+                            if cell.value is not None:
+                                try:
+                                    cell.number_format = '0.00%'  # Formato de porcentagem com duas casas decimais
+                                except (ValueError, TypeError):
+                                    continue
+                if winrate2_col_idx:
+                    for row in ws.iter_rows(min_row=2, min_col=winrate2_col_idx, max_col=winrate2_col_idx):
+                        for cell in row:
+                            if cell.value is not None:
+                                try:
+                                    cell.number_format = '0.00%'  # Formato de porcentagem com duas casas decimais
+                                except (ValueError, TypeError):
+                                    continue
 
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
-
-    return df_filtered, output
 
     return df_filtered, output
 
@@ -255,7 +281,7 @@ if uploaded_file:
     if pd.isna(primeira_data):
         primeira_data = datetime(2023, 1, 1).date()  # Valor padrão se não houver dados
     else:
-        primeira_data = pd.to_datetime(primeira_data).date()
+        primeira_data = pd.to_datetime(primeira_data, format="%d/%m/%Y").date()
 
     # Determinar o menor Winrate 1 válido
     df["Winrate 1"] = pd.to_numeric(df["Winrate 1"], errors="coerce")
@@ -287,13 +313,6 @@ if uploaded_file:
         data_inicio = st.date_input("Data Início", value=primeira_data)
         data_fim = st.date_input("Data Fim", value=datetime.now().date())
 
-        st.header("Formatação")
-        col3, col4 = st.columns(2)
-        with col3:
-            green_color = st.color_picker("Cor Positivo", "#90EE90")  # Verde claro como padrão
-        with col4:
-            red_color = st.color_picker("Cor Negativo", "#FF6347")   # Vermelho claro como padrão
-
     if winrate_min > winrate_max:
         st.error("Winrate Mínimo não pode ser maior que o Máximo.")
     elif data_inicio > data_fim:
@@ -302,7 +321,7 @@ if uploaded_file:
         # Processar dados com spinner
         with st.spinner('Processando dados...'):
             result = processar_dados(uploaded_file, torneio, tip, winrate_min, winrate_max, 
-                                   data_inicio, data_fim, green_color, red_color)
+                                   data_inicio, data_fim)
         if result[0] is not None:
             df_filtered, excel_file = result
 
