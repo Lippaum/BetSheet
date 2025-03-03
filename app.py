@@ -130,26 +130,22 @@ def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, d
     ).reset_index()
     df_confronto_times["ROI (%)"] = (df_confronto_times["Lucro_Prej"] / df_confronto_times["Quantidade_Entradas"]).round(2)
 
-    # Dentro da função processar_dados()
-# Salvar em Excel
-output = io.BytesIO()
-# Dentro da função processar_dados()
-# Salvar em Excel
-output = io.BytesIO()
-with pd.ExcelWriter(output, engine="openpyxl") as writer:
-    df_filtered.to_excel(writer, sheet_name="Tips Enviadas", index=False)
-    df_campeonato.to_excel(writer, sheet_name="Campeonato", index=False)
-    df_confronto.to_excel(writer, sheet_name="Confronto", index=False)
-    df_winrate1.to_excel(writer, sheet_name="Winrate 1", index=False)
-    df_winrate2.to_excel(writer, sheet_name="Winrate 2", index=False)
-    df_jogador.to_excel(writer, sheet_name="Jogador", index=False)
-    df_time.to_excel(writer, sheet_name="Time", index=False)
-    df_confronto_times.to_excel(writer, sheet_name="Confronto Times", index=False)
+ # Salvar em Excel
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df_filtered.to_excel(writer, sheet_name="Tips Enviadas", index=False)
+        df_campeonato.to_excel(writer, sheet_name="Campeonato", index=False)
+        df_confronto.to_excel(writer, sheet_name="ROI por Confronto", index=False)
+        df_winrate1.to_excel(writer, sheet_name="ROI por Winrate 1", index=False)
+        df_winrate2.to_excel(writer, sheet_name="ROI por Winrate 2", index=False)
+        df_jogador.to_excel(writer, sheet_name="ROI por Jogador", index=False)
+        df_time.to_excel(writer, sheet_name="ROI por Time", index=False)
+        df_confronto_times.to_excel(writer, sheet_name="ROI por Confronto Times", index=False)
 
-output.seek(0)
-wb = load_workbook(output)
-sheets = ["Tips Enviadas", "Campeonato", "Confronto", "Winrate 1", "Winrate 2", 
-          "Jogador", "Time", "Confronto Times"]
+    output.seek(0)
+    wb = load_workbook(output)
+    sheets = ["Tips Enviadas", "Campeonato", "ROI por Confronto", "Winrate 1", "Winrate 2", 
+              "Jogador", "Time", "Confronto Times"]
 
     for sheet_name in sheets:
         ws = wb[sheet_name]
