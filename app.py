@@ -75,7 +75,6 @@ def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, d
         lambda row: " vs ".join(sorted([str(row["Jogador A"]), str(row["Jogador B"])]))
         if pd.notna(row["Jogador A"]) and pd.notna(row["Jogador B"]) else "", axis=1
     )
-
     # Tabelas agrupadas
     df_confronto = df_filtered.groupby(["Torneio", "Confronto Normalizado"]).agg(
         Quantidade_Entradas=("Lucro/Prej.", "count"),
@@ -128,7 +127,18 @@ def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, d
     ).reset_index()
     df_time["ROI (%)"] = (df_time["Lucro_Prej"] / df_time["Quantidade_Entradas"]).round(2)
 
-    df_confronto_times = df_filtered.groupby(["Torneio", "Confronto Normalizado"]).agg(
+    
+
+        # Função para normalizar o confronto entre times
+    def normalize_confronto(row):
+        times = [row["Time A"], row["Time B"]]
+        times.sort()  # Ordena alfabeticamente
+        return f"{times[0]} vs {times[1]}"
+
+    # Aplicar a função ao DataFrame
+    df_filtered["Confronto_Times"] = df_filtered.apply(normalize_confronto, axis=1)
+
+    df_confronto_times = df_filtered.groupby(["Torneio", "Confronto_Times"]).agg(
         Quantidade_Entradas=("Lucro/Prej.", "count"),
         Lucro_Prej=("Lucro/Prej.", "sum")
     ).reset_index()
@@ -372,5 +382,3 @@ if uploaded_file:
                 help="Clique para baixar a planilha ajustada"
             )
             st.markdown('</div>', unsafe_allow_html=True)
-
-# Removido "Desenvolvido com Streamlit"
