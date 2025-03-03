@@ -133,6 +133,9 @@ def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, d
     # Dentro da função processar_dados()
 # Salvar em Excel
 output = io.BytesIO()
+# Dentro da função processar_dados()
+# Salvar em Excel
+output = io.BytesIO()
 with pd.ExcelWriter(output, engine="openpyxl") as writer:
     df_filtered.to_excel(writer, sheet_name="Tips Enviadas", index=False)
     df_campeonato.to_excel(writer, sheet_name="Campeonato", index=False)
