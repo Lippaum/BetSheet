@@ -319,9 +319,11 @@ if uploaded_file:
         winrate_range = st.slider("Intervalo de Winrate (%)", 0, 100, (initial_winrate_min, 100), step=1)
         winrate_min, winrate_max = winrate_range[0] / 100, winrate_range[1] / 100  # Correção aplicada
 
-        # Filtros de data ajustados
-        data_inicio = st.date_input("Data Início", value=primeira_data)
-        data_fim = st.date_input("Data Fim", value=datetime.now().date())
+        # Filtros de data ajustados com data inicial = 30 dias atrás da data atual
+        data_atual = datetime.now().date()  # Data atual (03/03/2025 conforme fornecido)
+        data_inicio_padrao = data_atual - pd.Timedelta(days=30)  # 30 dias atrás
+        data_inicio = st.date_input("Data Início", value=data_inicio_padrao)
+        data_fim = st.date_input("Data Fim", value=data_atual)
 
     if winrate_min > winrate_max:
         st.error("Winrate Mínimo não pode ser maior que o Máximo.")
