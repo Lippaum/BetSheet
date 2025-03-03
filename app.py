@@ -131,9 +131,9 @@ def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, d
     df_confronto_times["ROI (%)"] = (df_confronto_times["Lucro_Prej"] / df_confronto_times["Quantidade_Entradas"]).round(2)
 
     # Dentro da função processar_dados()
-    # Salvar em Excel
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+# Salvar em Excel
+output = io.BytesIO()
+with pd.ExcelWriter(output, engine="openpyxl") as writer:
     df_filtered.to_excel(writer, sheet_name="Tips Enviadas", index=False)
     df_campeonato.to_excel(writer, sheet_name="Campeonato", index=False)
     df_confronto.to_excel(writer, sheet_name="Confronto", index=False)
@@ -143,9 +143,9 @@ def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, d
     df_time.to_excel(writer, sheet_name="Time", index=False)
     df_confronto_times.to_excel(writer, sheet_name="Confronto Times", index=False)
 
-    output.seek(0)
-    wb = load_workbook(output)
-    sheets = ["Tips Enviadas", "Campeonato", "Confronto", "Winrate 1", "Winrate 2", 
+output.seek(0)
+wb = load_workbook(output)
+sheets = ["Tips Enviadas", "Campeonato", "Confronto", "Winrate 1", "Winrate 2", 
           "Jogador", "Time", "Confronto Times"]
 
     for sheet_name in sheets:
