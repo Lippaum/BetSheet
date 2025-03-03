@@ -135,17 +135,17 @@ def processar_dados(file, torneio, tip, winrate_min, winrate_max, data_inicio, d
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df_filtered.to_excel(writer, sheet_name="Tips Enviadas", index=False)
         df_campeonato.to_excel(writer, sheet_name="Campeonato", index=False)
-        df_confronto.to_excel(writer, sheet_name="Confronto", index=False)
-        df_winrate1.to_excel(writer, sheet_name="Winrate 1", index=False)
-        df_winrate2.to_excel(writer, sheet_name="Winrate 2", index=False)
-        df_jogador.to_excel(writer, sheet_name="Jogador", index=False)
+        df_confronto.to_excel(writer, sheet_name="ROI por Confronto", index=False)
+        df_winrate1.to_excel(writer, sheet_name="ROI por Winrate 1", index=False)
+        df_winrate2.to_excel(writer, sheet_name="ROI por Winrate 2", index=False)
+        df_jogador.to_excel(writer, sheet_name="ROI por Jogador", index=False)
         df_time.to_excel(writer, sheet_name="ROI por Time", index=False)
-        df_confronto_times.to_excel(writer, sheet_name="Confronto Times", index=False)
+        df_confronto_times.to_excel(writer, sheet_name="ROI por Confronto Times", index=False)
 
     output.seek(0)
     wb = load_workbook(output)
-    sheets = ["Tips Enviadas", "Campeonato", "Confronto", "Winrate 1", "Winrate 2", 
-              "Jogador", "Time", "Confronto Times"]
+    sheets = ["Tips Enviadas", "Campeonato", "ROI por Confronto", "ROI por Winrate 1", "ROI por Winrate 2", 
+              "ROI por Jogador", "ROI por Time", "ROI por Confronto Times"]
 
     for sheet_name in sheets:
         ws = wb[sheet_name]
